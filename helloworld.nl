@@ -18,4 +18,6 @@ E is 4.
 Display Run even with E.
 Display Run even with C.
 
-Display 2 ^ 3, 3 ^ 3.
+MyList is 2 ^ 3, 3 ^ 3.
+MyList is MyList + 5.
+Display MyList at 2.

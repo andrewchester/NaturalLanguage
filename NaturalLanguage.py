@@ -39,6 +39,7 @@ class Interpreter:
             '/': self.math,
             '%': self.math,
             '^': self.math,
+            'at': self.indexList,
             ',': None, # list construction is handled as a special case during statement execution
             'Run': self.runFunction,
             'with': self.parameterConstruction,
@@ -64,6 +65,7 @@ class Interpreter:
             '^': 6,
             'Run': 7,
             'with': 8,
+            'at': 9
         }
 
         self.arithmetic = {
@@ -80,7 +82,7 @@ class Interpreter:
     def assignment(self, tokens, **kwargs):
         if len(tokens) < 2:
             raise RuntimeError("Assignment error")
-        
+
         if type(tokens[1]) == dict and tokens[1]['type'] == 'function':
             if self.loadingFunction:
                 self.activeFunction = tokens[0]
@@ -120,6 +122,18 @@ class Interpreter:
             return False
         return literal
 
+    def indexList(self, tokens, **kwargs):
+        if len(tokens) != 2:
+            raise SyntaxError("Index requires a list and an index")
+        
+        if not is_number(tokens[1]):
+            raise TypeError("Index must be a number")
+
+        if type(tokens[0]) != list:
+            raise TypeError("You can only index a list")
+
+        return [tokens[0][int(tokens[1]-1)]]
+
     def math(self, tokens, **kwargs):
         if len(tokens) != 2:
             raise RuntimeError("Input error")
@@ -138,13 +152,13 @@ class Interpreter:
             result = []
             for token in left:
                 result.append(*self.math(tokens = [token, tokens[1]], mathOperator = mathematicalOperator))
-            return result
+            return [result]
 
         if type(right) == list:
             result = []
             for token in right:
                 result.append(*self.math(tokens = [tokens[0], token], mathOperator = mathematicalOperator))
-            return result
+            return [result]
         
         return [self.arithmetic[mathematicalOperator](left, right)]
 
@@ -253,7 +267,10 @@ class Interpreter:
         
         operatorIdx = tokens.index(precedentOperation[0])
         
-        leftResult = self.executeStatement(tokens[:operatorIdx]) if tokens[:operatorIdx] != [] else []
+        if operator != 'is':
+            leftResult = self.executeStatement(tokens[:operatorIdx]) if tokens[:operatorIdx] != [] else []
+        else:
+            leftResult = tokens[:operatorIdx]
         rightResult = self.executeStatement(tokens[operatorIdx+1:]) if tokens[operatorIdx+1:] != [] else []
 
         return self.operators[operator](tokens = [*leftResult, *rightResult], mathOperator=operator)
