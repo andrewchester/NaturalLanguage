@@ -2,9 +2,11 @@ Interpreter written in python for a small programming language aiming to be simi
 
 Currently very barebones, supports:
 - Variable assignment (floats, booleans, strings)
+- Lists
 - Conditionals
 - Functions
-- Mathematical operations: +, -, *, /, %
+- Mathematical operations: +, -, *, /, %, ^
+- Mathematical operations over lists (i.e., [1,2] * 2 = [2,4])
 
 Current features shown in helloworld.nl
 

@@ -17,3 +17,5 @@ If C % 3 equals 0, Display :3.
 E is 4.
 Display Run even with E.
 Display Run even with C.
+
+Display 2 ^ 3, 3 ^ 3.

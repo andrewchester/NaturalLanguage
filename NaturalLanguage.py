@@ -38,6 +38,8 @@ class Interpreter:
             '*': self.math,
             '/': self.math,
             '%': self.math,
+            '^': self.math,
+            ',': None, # list construction is handled as a special case during statement execution
             'Run': self.runFunction,
             'with': self.parameterConstruction,
             'return': self.exitFunction
@@ -53,13 +55,15 @@ class Interpreter:
             'return': 0,
             'is': 1,
             'Display': 2,
-            '+': 3,
-            '-': 3,
-            '*': 4,
-            '/': 4,
-            '%': 4,
-            'Run': 5,
-            'with': 6
+            ',': 3,
+            '+': 4,
+            '-': 5,
+            '*': 5,
+            '/': 5,
+            '%': 5,
+            '^': 6,
+            'Run': 7,
+            'with': 8,
         }
 
         self.arithmetic = {
@@ -67,7 +71,8 @@ class Interpreter:
             '-': lambda a, b : a - b,
             '*': lambda a, b: a * b,
             '/': lambda a, b: a / b,
-            '%': lambda a, b: int(a) % int(b)
+            '%': lambda a, b: int(a) % int(b),
+            '^': lambda a, b: a ** b
         }
 
         self.filler = ['a', 'an']
@@ -117,7 +122,7 @@ class Interpreter:
 
     def math(self, tokens, **kwargs):
         if len(tokens) != 2:
-            raise RuntimeError("Addition error")
+            raise RuntimeError("Input error")
 
         mathematicalOperator = kwargs.get('mathOperator', None)
 
@@ -127,7 +132,7 @@ class Interpreter:
         left, right = tokens[0], tokens[1]
 
         if type(left) == str or type(right) == str:
-            raise TypeError("Invalid type for addition")
+            raise TypeError("Invalid type for mathematical operation")
 
         if type(left) == list:
             result = []
@@ -212,39 +217,46 @@ class Interpreter:
         precedentOperation = [None, float('inf')]
 
         for operator, _ in self.operators.items():
-            if operator in tokens and self.precedence[operator] < precedentOperation[1]:
+            if operator == ',':
+                for token in tokens:
+                    if token[-1] == operator and self.precedence[operator] < precedentOperation[1]:
+                        precedentOperation = [operator, self.precedence[operator]]
+            elif operator in tokens and self.precedence[operator] < precedentOperation[1]:
                 precedentOperation = [operator, self.precedence[operator]]
 
-        if precedentOperation[0] is None and len(tokens) == 1:
+        if len(tokens) == 1 and tokens[0] in self.operators:
+            raise SyntaxError("Operator syntax error")
+        if len(tokens) == 1:
             return [self.evalLiteral(tokens[0])]
-        elif precedentOperation[0] is None:
-            if tokens[0][-1] == ',':
-                newList = []
-                for token in tokens:
-                    if token == tokens[-1]:
-                        if is_number(token):
-                            newList.append(float(token))
-                        else:
-                            newList.append(token)
-                        continue
-
-                    if token[-1] != ',':
-                        raise SyntaxError("List creation must use commas to denote elements")
-                    
-                    if is_number(token[:-1]):
-                        newList.append(float(token[:-1]))
-                    else:
-                        newList.append(token[:-1])
-
-                return [newList]
-            
+        if precedentOperation[0] is None:
             raise SyntaxError("Each statement must contain an operation")
-       
+            
+        operator, _ = precedentOperation
+        
+        if operator == ',':
+            result = []
+            sequence = []
+
+            while tokens:
+                token = tokens.pop(0)
+                if token[-1] == operator:
+                    sequence.append(token[:-1])
+                    result.append(*self.executeStatement(sequence))
+                    sequence = []
+                else:
+                    sequence.append(token)
+            
+            if sequence:
+                result.append(*self.executeStatement(sequence))
+
+            return [result]
+        
         operatorIdx = tokens.index(precedentOperation[0])
+        
         leftResult = self.executeStatement(tokens[:operatorIdx]) if tokens[:operatorIdx] != [] else []
         rightResult = self.executeStatement(tokens[operatorIdx+1:]) if tokens[operatorIdx+1:] != [] else []
 
-        return self.operators[precedentOperation[0]](tokens = [*leftResult, *rightResult], mathOperator=precedentOperation[0])
+        return self.operators[operator](tokens = [*leftResult, *rightResult], mathOperator=operator)
 
     def equality(self, tokens):
         if len(tokens) != 2:
@@ -345,7 +357,6 @@ class Interpreter:
                     print("Unknown Error occured:",e)
 
 if __name__ == "__main__":
-
     if len(sys.argv) != 2:
         print("Please specify source file.")
         exit()
