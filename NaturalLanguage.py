@@ -89,7 +89,7 @@ class Interpreter:
 
     def display(self, tokens, **kwargs):
         if len(tokens) == 0:
-            raise SyntaxError("Display must have input")
+            print()
 
         for token in tokens:
             print(token, end = ' ')
@@ -148,7 +148,7 @@ class Interpreter:
 
         if len(func['params']) != len(func['values']):
             raise RuntimeError(f'parameters are:{func['params']}')
-        
+
         backupVariables = self.variableTable.copy()
     
         for param, value in zip(func['params'], func['values']):
@@ -158,7 +158,6 @@ class Interpreter:
 
         for statement in func['execute']:
             if self.returnValue != None:
-                self.inFunction = False
                 break
 
             if statement[0] == self.conditional:
@@ -169,7 +168,9 @@ class Interpreter:
         self.variableTable = backupVariables
 
         result = [self.returnValue] if self.returnValue is not None else []
+        
         self.returnValue = None
+        self.inFunction = False
 
         return result
 
